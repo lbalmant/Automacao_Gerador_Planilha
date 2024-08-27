@@ -7,10 +7,12 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
-import pandas as pd
 import pyautogui as bot
 from openpyxl.styles import NamedStyle, Border, Side
 from openpyxl.utils import get_column_letter
+
+class ErroDeDataInvalida:
+    pass
 
 def encontrar_caminho_area_de_trabalho():
     # Possíveis caminhos para a Área de Trabalho
@@ -160,7 +162,11 @@ def processar_planilhas():
                 UltLinPlanilhaprincipal += PlanSecundaria.max_row-5
             i += 1
         planilha.title = ("Planilha Bruta")
+
+        #gerando planilha análise e itens compatíveis
         Planilha_analise(workbook, planilha)
+        
+
         Itens_compativeis(workbook)
 
         caminho_arquivo = os.path.join(caminhoDesktop, nomepasta, f"{nomearq}.xlsx")
@@ -170,6 +176,8 @@ def processar_planilhas():
         apagar_caixas_de_texto()
     except FileNotFoundError as e:
         messagebox.showerror("Erro", str(e))
+    except ErroDeDataInvalida:
+        messagebox.showerror("Erro", "Erro ao processar a data. Execução interrompida.")
 #salvando o arquivo
 
 
@@ -202,7 +210,20 @@ def Planilha_analise(workbook, planilha):
 
         #convertendo a coluna 12 para datas e comparação
         data_atual = entrada_data.get()
-        data_formatada = dt.strptime(data_atual,"%d/%m/%Y")
+        #método para seguir fluxo normal do programa caso o usuário digite a data no formato DD/MM/AA ao invés de DD/MM/AAAA
+        try:
+            data_formatada = dt.strptime(data_atual,"%d/%m/%Y")
+        except ValueError:
+            try:  
+                data_formatada = dt.strptime(data_atual,"%d/%m/%y")
+                data_formatada = data_formatada.strftime(data_formatada,"%d/%m/%Y")
+            except ValueError:
+                messagebox.showerror("Erro", "Data inválida!\nDigite a data no formato AA/MM/AAAA ou AA/MM/AA")
+                raise ErroDeDataInvalida("Data Inválida fornecida")
+
+            
+
+        
         data_12_meses_atras = data_formatada - relativedelta(months=12)
 
         linhas = 2
@@ -211,8 +232,12 @@ def Planilha_analise(workbook, planilha):
         while(linhas<=planilha_analise.max_row):
             #transformando a coluna j em formato monetario para análise na planilha "Itens compatíveis"
             valor_celula = planilha_analise.cell(row=linhas, column = 8).value
+            
             if isinstance(valor_celula,str):
-                valor_celula = float(valor_celula.replace("R$","").replace(",","").strip())
+                valor_celula = valor_celula.replace("R$","").strip()
+                valor_celula = valor_celula.replace(".", ",").replace(",", ".")
+                valor_celula = float(valor_celula)
+                
                 planilha_analise.cell(row = linhas,column = 8).value = valor_celula
             planilha_analise.cell(row=linhas, column = 8).style = money_format
 
