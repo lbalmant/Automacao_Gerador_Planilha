@@ -8,7 +8,9 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import pandas as pd
-
+import pyautogui as bot
+from openpyxl.styles import NamedStyle, Border, Side
+from openpyxl.utils import get_column_letter
 
 def encontrar_caminho_area_de_trabalho():
     # Possíveis caminhos para a Área de Trabalho
@@ -37,8 +39,21 @@ def encontrar_caminho_relatorio_painel(B, caminhoDesktop, nomepasta):
     for caminho in caminhos_possiveis:
         if os.path.exists(caminho):
             return caminho
-        else:
-            return "e" 
+    else:
+        return "e" 
+
+def caminho_relatorio_painel_completo(B, caminho_relatorio):
+    caminhos_possiveis = [
+        os.path.join(caminho_relatorio, "relatorio_painel ("+str(B)+").xlsx"),
+        os.path.join(caminho_relatorio, "relatorio_painel("+str(B)+").xlsx"),
+    ]    
+    for caminho in caminhos_possiveis:
+        if os.path.exists(caminho):
+            return caminho
+    else:
+        return "e" 
+
+
 
 def adicionar_filtros(planilha):
     #Intervalo para aplicar os filtros
@@ -55,42 +70,54 @@ def processar_planilhas():
         #Remover_border_frame(entrada_nome_arquivo)
         #verifica_preenchimento()
         nomepasta = entrada_nomepasta.get()
-        
 
-        try:
-            numeroplanilhas = int(entrada_numero_planilhas.get())
-        except:
-            numeroplanilhas = None
+
+
+
+        numeroplanilhas = 300
 
         nomearq = entrada_nome_arquivo.get()
         for a in nomearq:
             if (a=='/' or a=='\\' or a=='<' or a=='>' or a==':' or a=='|' or a=='?' or a == '*' or a == '.'):
                 messagebox.showerror("Erro", "Os nomes de arquivo não podem conter nenhum dos seguintes caracteres: / \\ < > : | ? '' * ")
                 return
-        if(not nomepasta or not numeroplanilhas or not nomearq):
+        if(not nomepasta or not nomearq):
             messagebox.showerror("Erro", "Preencha todas as caixas de texto!")
             return
                 
         #criando o caminho para a pasta em que foram salvas as planilhas
+
+       
         caminhoDesktop = encontrar_caminho_area_de_trabalho()
 
 
         #variável para rodar todas as planilhas
         i=1
-        caminhopasta = os.path.join(caminhoDesktop, nomepasta, "relatorio_painel.xlsx")
+        caminhopasta = os.path.join(caminhoDesktop, nomepasta)
+
+        ehCaminhoCompleto = False
 
         #verifica se a pasta foi encontrada retornando uma mensagem de erro se não for
-        if(not os.path.exists(os.path.join(caminhoDesktop,nomepasta))):
-            messagebox.showerror("Pasta não encontrada!","Certifique-se de que a pasta se encontra na área de trabalho do seu Desktop e que o nome está correto.")
+        if(not os.path.exists(caminhopasta)):
+            caminhopasta = nomepasta
+            ehCaminhoCompleto = True
+        caminho_relatorio = os.path.join(caminhopasta, "relatorio_painel.xlsx")
+
+
+        if(not os.path.exists(caminhopasta)):
+            messagebox.showerror("Pasta não encontrada!","Certifique-se de que a pasta se encontra na área de trabalho do seu Desktop e que o nome está correto.\nVoce também pode fornecer o caminho completo para a pasta.")
             return
 
-        while(not os.path.exists(caminhopasta) and i<=numeroplanilhas):
-            caminhopasta = encontrar_caminho_relatorio_painel(i, caminhoDesktop, nomepasta)
+        while(not os.path.exists(caminho_relatorio) and i<=numeroplanilhas):
+            if ehCaminhoCompleto:
+                caminho_relatorio = caminho_relatorio_painel_completo(B=i,caminho_relatorio=caminhopasta)
+            else:
+                caminho_relatorio = encontrar_caminho_relatorio_painel(i, caminhoDesktop, nomepasta)
             i+=1
 
 
         #lendo a planilha base
-        workbook = xl.load_workbook(caminhopasta)
+        workbook = xl.load_workbook(caminho_relatorio)
         planilha = workbook.active
 
         #deletando as 4 primeiras linhas que não fazem parte da nossa análise
@@ -103,7 +130,7 @@ def processar_planilhas():
 
 
         #loop que roda todas as planilhas secundarias trazendo as informações importantes para a principal
-        while(i!=numeroplanilhas+1):
+        while(i!=numeroplanilhas):
             #criando o caminho para cada uma das outras planilhas e ativando a planilha
             CamOutrasPlanilhas = encontrar_caminho_relatorio_painel(i, caminhoDesktop, nomepasta)
             if os.path.exists(CamOutrasPlanilhas):
@@ -134,7 +161,7 @@ def processar_planilhas():
             i += 1
         planilha.title = ("Planilha Bruta")
         Planilha_analise(workbook, planilha)
- #       Itens_compativeis(workbook)
+        Itens_compativeis(workbook)
 
         caminho_arquivo = os.path.join(caminhoDesktop, nomepasta, f"{nomearq}.xlsx")
         workbook.save(caminho_arquivo)
@@ -179,7 +206,17 @@ def Planilha_analise(workbook, planilha):
         data_12_meses_atras = data_formatada - relativedelta(months=12)
 
         linhas = 2
+        money_format = NamedStyle(name='money_format', number_format='"R$ "#,##0.00')
+
         while(linhas<=planilha_analise.max_row):
+            #transformando a coluna j em formato monetario para análise na planilha "Itens compatíveis"
+            valor_celula = planilha_analise.cell(row=linhas, column = 8).value
+            if isinstance(valor_celula,str):
+                valor_celula = float(valor_celula.replace("R$","").replace(",","").strip())
+                planilha_analise.cell(row = linhas,column = 8).value = valor_celula
+            planilha_analise.cell(row=linhas, column = 8).style = money_format
+
+            #implementação de método para comparação de datas
             valor = planilha_analise.cell(row=linhas, column=12).value
             planilha_analise.cell(row=linhas, column=12).value = dt.strptime(valor, '%d/%m/%Y')
             planilha_analise.cell(row=linhas, column=12).number_format = 'DD/MM/YYYY'
@@ -195,37 +232,47 @@ def Planilha_analise(workbook, planilha):
         
 
 def Itens_compativeis(workbook):
-    itens_compativeis = workbook.create_sheet(title= "Itens compatíveis")
-    col_idx = 7  # Índice da coluna H, sendo a oitava coluna (0-based index)
-
-
+    itens_compativeis = workbook.create_sheet(title= "Itens compatíveis") 
 
     # Aplicar o formato numérico na coluna H da planilha "Itens Compatíveis"
 
-
     # Adicionar as fórmulas começando na célula A21
-    money_format = workbook.add_format({'num_format': 'R$ #,##0.00'})
-    
-    itens_compativeis.write('R2', 'MÉDIA')
-    itens_compativeis.write_formula('S2', '=AVERAGE(H2:H300)', money_format)
-    
-    itens_compativeis.write('R3', 'DESVIO')
-    itens_compativeis.write_formula('S3', '=STDEVP(H2:H300)', money_format)
-    
-    itens_compativeis.write('R4', 'COEFICIENTE')
-    itens_compativeis.write_formula('S4', '=S3/S2', workbook.add_format({'num_format': '0.00%'}))
-    
-    itens_compativeis.write('R5', 'MEDIANA')
-    itens_compativeis.write_formula('S5', '=MEDIAN(H2:H300)', workbook.add_format({'num_format': '0.00%'}))
+    money_format = NamedStyle(name='money_format', number_format='"R$ "#,##0.00')
 
-    itens_compativeis.write('R5', '=IF(S4>25%,"PREÇO MEDIANA","PREÇO MÉDIA")')
-    itens_compativeis.write_formula('S5', '=IF(S4>25%,S5,S2)', money_format)
 
-    # Adicionar contorno às células R1:S4
-    border_format = workbook.add_format({'border': 2})
-    itens_compativeis.conditional_format('R2:S5', {'type': 'no_blanks', 'format': border_format})
-    itens_compativeis.conditional_format('R2:S5', {'type': 'blanks', 'format': border_format})
+    #criando a tabela de analise dos itens compativeis
+    itens_compativeis['R2'].value = "MÉDIA"
+    itens_compativeis['R3'].value = "DESVIO"
+    itens_compativeis['R4'].value = "COEFICIENTE"
+    itens_compativeis['R5'].value = "MEDIANA"
+    itens_compativeis['R6'].value = '=IF(S4>0.25,"PREÇO MEDIANA","PREÇO MÉDIA")'
+    itens_compativeis['R6'].font = Font(bold=True)
+    
 
+    
+    itens_compativeis['S2'].value = '=AVERAGE(H2:H300)'
+    itens_compativeis['S2'].style = money_format
+
+    itens_compativeis['S3'].value = '=STDEVP(H2:H300)'
+    itens_compativeis['S3'].style = money_format
+
+    itens_compativeis['S4'].value = '=S3/S2'
+    percent_style = NamedStyle(name='percent_style', number_format='0.00%')
+    itens_compativeis['S4'].style = percent_style
+
+    itens_compativeis['S5'].value = '=MEDIAN(H2:H300)'
+    itens_compativeis['S5'].style = money_format
+
+    itens_compativeis['S6'].value = '=IF(S4>0.25,S5,S2)'
+    itens_compativeis['S6'].style = money_format
+    itens_compativeis['S6'].font = Font(bold=True)
+
+    #Aplicando borda na tabelinha
+    borda = Border(left=Side(style='thin'),right=Side(style='thin'),top=Side(style='thin'),bottom=Side(style='thin'))
+    for i in range(2,7):
+        itens_compativeis.cell(row=i,column=18).border = borda
+        itens_compativeis.cell(row= i, column=19).border = borda
+            
 def ajuda():
     messagebox.showinfo("Informações importantes",
                         "A pasta com as planilhas extraídas devem estar localizadas na sua área de trabalho.\nNão renomeie nenhuma das planilhas\nO arquivo final será salvo na mesma pasta onde se encontram as planilhas extraídas.")
@@ -233,9 +280,10 @@ def ajuda():
 def apagar_caixas_de_texto():
     entrada_nome_arquivo.delete(0, tk.END)
     entrada_nomepasta.delete(0,tk.END)
-    entrada_numero_planilhas.delete(0,tk.END)
     entrada_data.delete(0,tk.END)
-
+    #metodo para fazer o cursor voltar para a primeira caixa
+    for i in range (3):
+        bot.hotkey('shift', 'tab')
 #def Drop_arquivos():
 
 
@@ -254,17 +302,14 @@ tk.Label(root, text="*Nome da pasta:").grid(row=0, column=0, padx=10, pady=10)
 entrada_nomepasta = tk.Entry(root)
 entrada_nomepasta.grid(row=0, column=1, padx=10, pady=10)
 
-tk.Label(root, text="*Índice da última planilha:").grid(row=1, column=0, padx=10, pady=10)
-entrada_numero_planilhas = tk.Entry(root)
-entrada_numero_planilhas.grid(row=1, column=1, padx=10, pady=10)
 
-tk.Label(root, text="*Nome do arquivo final:").grid(row=2, column=0, padx=10, pady=10)
+tk.Label(root, text="*Nome do arquivo final:").grid(row=1, column=0, padx=10, pady=10)
 entrada_nome_arquivo = tk.Entry(root)
-entrada_nome_arquivo.grid(row=2, column=1, padx=10, pady=10)
+entrada_nome_arquivo.grid(row=1, column=1, padx=10, pady=10)
 
-tk.Label(root, text = "*Data da extração das planilhas\n(DD/MM/AAAA): ").grid(row = 3, column= 0, padx=10, pady=10)
+tk.Label(root, text = "*Data da extração das planilhas\n(DD/MM/AAAA): ").grid(row = 2, column= 0, padx=10, pady=10)
 entrada_data = tk.Entry(root)
-entrada_data.grid(row=3, column= 1, padx=10, pady=10)
+entrada_data.grid(row=2, column= 1, padx=10, pady=10)
 
 #Criando bota de ajuda
 #help_icon = Image.open("botao_de_ajuda.png")
