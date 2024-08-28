@@ -218,7 +218,7 @@ def Planilha_analise(workbook, planilha):
                 data_formatada = dt.strptime(data_atual,"%d/%m/%y")
                 data_formatada = data_formatada.strftime(data_formatada,"%d/%m/%Y")
             except ValueError:
-                messagebox.showerror("Erro", "Data inválida!\nDigite a data no formato AA/MM/AAAA ou AA/MM/AA")
+                messagebox.showerror("Erro", "Data inválida!\nVerifique se a data é valida ou se está digitada no formato AA/MM/AAAA ou AA/MM/AA")
                 raise ErroDeDataInvalida("Data Inválida fornecida")
 
             
@@ -300,7 +300,7 @@ def Itens_compativeis(workbook):
             
 def ajuda():
     messagebox.showinfo("Informações importantes",
-                        "A pasta com as planilhas extraídas devem estar localizadas na sua área de trabalho.\nNão renomeie nenhuma das planilhas\nO arquivo final será salvo na mesma pasta onde se encontram as planilhas extraídas.")
+                        "Recorte as planilhas e cole em uma nova pasta localizada na sua área de trabalho.\n\nCaso a pasta não esteja na sua área de trabalho você deverá especificar todo o caminho para a pasta.\n\nNão renomeie as planilhas mantendo os nomes padrões das extrações.\n\nO arquivo final será salvo na mesma pasta onde se encontram as planilhas extraídas.\n\nÉ importante ter um controle dos índices das planilhas salvas na pasta. Não é necessário que estes sigam em sequência mas o índice de maior número deve ser inferior à 300.")
 
 def apagar_caixas_de_texto():
     entrada_nome_arquivo.delete(0, tk.END)
@@ -336,13 +336,20 @@ tk.Label(root, text = "*Data da extração das planilhas\n(DD/MM/AAAA): ").grid(
 entrada_data = tk.Entry(root)
 entrada_data.grid(row=2, column= 1, padx=10, pady=10)
 
-#Criando bota de ajuda
-#help_icon = Image.open("botao_de_ajuda.png")
-#help_icon = help_icon.resize((20, 20))
-#help_icon = ImageTk.PhotoImage(help_icon)
+imagem = Image.open("triangulo.png")
+imagem = imagem.resize((32,32),Image.LANCZOS)
+icone = ImageTk.PhotoImage(imagem)
 
-#help_button = tk.Button(root, image=help_icon, command=ajuda, borderwidth=0)
-#help_button.place(x=270, y=155)
+root.iconphoto(True, icone)
+
+#Criando bota de ajuda
+help_icon = Image.open("botao_de_ajuda_transparente.png")
+help_icon = help_icon.resize((22, 22), Image.LANCZOS)
+
+help_icon = ImageTk.PhotoImage(help_icon)
+
+help_button = tk.Button(root, image=help_icon, command=ajuda, borderwidth=0)
+help_button.place(x=300, y=170)
 
 # Botão para processar as planilhas
 tk.Button(root, text="Processar", command=processar_planilhas).grid(row=4, column=0, columnspan=2, pady=20)
