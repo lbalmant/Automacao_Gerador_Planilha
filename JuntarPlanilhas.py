@@ -72,10 +72,6 @@ def processar_planilhas():
         #Remover_border_frame(entrada_nome_arquivo)
         #verifica_preenchimento()
         nomepasta = entrada_nomepasta.get()
-
-
-
-
         numeroplanilhas = 300
 
         nomearq = entrada_nome_arquivo.get()
@@ -86,10 +82,22 @@ def processar_planilhas():
         if(not nomepasta or not nomearq):
             messagebox.showerror("Erro", "Preencha todas as caixas de texto!")
             return
-                
+        
+        
+        #Testando data
+        data_atual_teste = entrada_data.get()
+        #método para seguir fluxo normal do programa caso o usuário digite a data no formato DD/MM/AA ao invés de DD/MM/AAAA
+
+        try:
+            data_formatada_teste = dt.strptime(data_atual_teste,"%d/%m/%Y")
+        except ValueError:
+            messagebox.showerror("Erro", "Data inválida!\nVerifique se a data é valida ou se está digitada no formato DD/MM/AAAA")
+            raise ErroDeDataInvalida("Data Inválida fornecida")    
+         
         #criando o caminho para a pasta em que foram salvas as planilhas
 
-       
+
+    
         caminhoDesktop = encontrar_caminho_area_de_trabalho()
 
 
@@ -165,8 +173,7 @@ def processar_planilhas():
 
         #gerando planilha análise e itens compatíveis
         Planilha_analise(workbook, planilha)
-        
-
+    
         Itens_compativeis(workbook)
 
         caminho_arquivo = os.path.join(caminhoDesktop, nomepasta, f"{nomearq}.xlsx")
@@ -214,12 +221,8 @@ def Planilha_analise(workbook, planilha):
         try:
             data_formatada = dt.strptime(data_atual,"%d/%m/%Y")
         except ValueError:
-            try:  
-                data_formatada = dt.strptime(data_atual,"%d/%m/%y")
-                data_formatada = data_formatada.strftime(data_formatada,"%d/%m/%Y")
-            except ValueError:
-                messagebox.showerror("Erro", "Data inválida!\nVerifique se a data é valida ou se está digitada no formato AA/MM/AAAA ou AA/MM/AA")
-                raise ErroDeDataInvalida("Data Inválida fornecida")
+            messagebox.showerror("Erro", "Data inválida!\nVerifique se a data é valida ou se está digitada no formato DD/MM/AAAA")
+            raise ErroDeDataInvalida("Data Inválida fornecida")
 
             
 
@@ -304,11 +307,11 @@ def ajuda():
 
 def apagar_caixas_de_texto():
     entrada_nome_arquivo.delete(0, tk.END)
-    entrada_nomepasta.delete(0,tk.END)
     entrada_data.delete(0,tk.END)
+    entrada_nomepasta.delete(0,tk.END)
     #metodo para fazer o cursor voltar para a primeira caixa
-    for i in range (3):
-        bot.hotkey('shift', 'tab')
+    for i in range (2):
+       bot.hotkey('shift', 'tab')
 #def Drop_arquivos():
 
 
