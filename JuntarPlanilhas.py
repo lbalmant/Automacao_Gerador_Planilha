@@ -126,7 +126,7 @@ def processar_planilhas(event=None):
 
 
         if(not os.path.exists(caminhopasta)):
-            messagebox.showerror("Pasta não encontrada!","Certifique-se de que a pasta se encontra na área de trabalho do seu Desktop e que o nome está correto.\nVoce também pode fornecer o caminho completo para a pasta.")
+            messagebox.showerror("Pasta não encontrada!","Certifique-se de que a pasta se encontra na área de trabalho do seu Desktop e que o nome esteja correto.\nVoce também pode fornecer o caminho completo para a pasta.")
             return
 
         while(not os.path.exists(caminho_relatorio) and i<=numeroplanilhas):
