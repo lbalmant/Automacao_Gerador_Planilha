@@ -17,10 +17,11 @@ class ErroDeDataInvalida:
 def encontrar_caminho_area_de_trabalho():
     # Possíveis caminhos para a Área de Trabalho
     caminhos_possiveis = [
+        os.path.join(os.path.expanduser("~"), "Desktop"),
+        os.path.join(os.path.expanduser("~"), "Área de Trabalho"),
         os.path.join(os.path.expanduser("~"), "OneDrive", "Área de Trabalho"),
         os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop"),
-        os.path.join(os.path.expanduser("~"), "Área de Trabalho"),
-        os.path.join(os.path.expanduser("~"), "Desktop"),
+           
     ]
 
     # Verifica se algum dos caminhos existe
@@ -65,23 +66,33 @@ def adicionar_filtros(planilha):
 
 
 
-def processar_planilhas():
+def processar_planilhas(event=None):
     try:
         #Remover_border_frame(entrada_nomepasta)
         #Remover_border_frame(entrada_numero_planilhas)
         #Remover_border_frame(entrada_nome_arquivo)
         #verifica_preenchimento()
         nomepasta = entrada_nomepasta.get()
-        numeroplanilhas = 300
-
         nomearq = entrada_nome_arquivo.get()
-        for a in nomearq:
-            if (a=='/' or a=='\\' or a=='<' or a=='>' or a==':' or a=='|' or a=='?' or a == '*' or a == '.'):
-                messagebox.showerror("Erro", "Os nomes de arquivo não podem conter nenhum dos seguintes caracteres: / \\ < > : | ? '' * ")
-                return
         if(not nomepasta or not nomearq):
             messagebox.showerror("Erro", "Preencha todas as caixas de texto!")
             return
+        numeroplanilhas = 300
+        verificarEspaco = 0
+        for c in nomepasta:
+            verificarEspaco += 1
+
+
+        if nomepasta[verificarEspaco-1]== " ":
+            nomepasta = nomepasta[:-1]
+
+        contadorletras = 0
+        for a in nomearq:
+            contadorletras +=1
+            if (a=='/' or a=='\\' or a=='<' or a=='>' or a==':' or a=='|' or a=='?' or a == '*' or a == '.'):
+                messagebox.showerror("Erro", "Os nomes de arquivo não podem conter nenhum dos seguintes caracteres: / \\ < > : | ? '' * ")
+                return
+
         
         
         #Testando data
@@ -176,6 +187,10 @@ def processar_planilhas():
     
         Itens_compativeis(workbook)
 
+        Pesquisa_de_mercado(workbook)
+
+        Racional(workbook=workbook)
+
         caminho_arquivo = os.path.join(caminhoDesktop, nomepasta, f"{nomearq}.xlsx")
         workbook.save(caminho_arquivo)
     
@@ -185,6 +200,8 @@ def processar_planilhas():
         messagebox.showerror("Erro", str(e))
     except ErroDeDataInvalida:
         messagebox.showerror("Erro", "Erro ao processar a data. Execução interrompida.")
+    except Exception:
+        messagebox.showerror("Erro", "Tente verificar os espaços.")
 #salvando o arquivo
 
 
@@ -267,7 +284,8 @@ def Itens_compativeis(workbook):
     # Adicionar as fórmulas começando na célula A21
     money_format = NamedStyle(name='money_format', number_format='"R$ "#,##0.00')
 
-
+    if 'money_format' not in workbook.named_styles:
+        workbook.add_named_style(money_format)
     #criando a tabela de analise dos itens compativeis
     itens_compativeis['R2'].value = "MÉDIA"
     itens_compativeis['R3'].value = "DESVIO"
@@ -301,9 +319,70 @@ def Itens_compativeis(workbook):
         itens_compativeis.cell(row=i,column=18).border = borda
         itens_compativeis.cell(row= i, column=19).border = borda
             
+def Pesquisa_de_mercado(workbook):
+    pesquisa_de_mercado = workbook.create_sheet(title= "Pesquisa de mercado")
+    percent_style = NamedStyle(name='percent_style', number_format='0.00%')
+
+    money_format = NamedStyle(name='money_format', number_format='"R$ "#,##0.00')
+    for i in range(7,17):
+        pesquisa_de_mercado.cell(row=i,column = 2).style = money_format
+        pesquisa_de_mercado.cell(row=i,column = 3).font = Font(color="0000FF", underline="single")
+
+    pesquisa_de_mercado['A1'].value = "DATA:"
+    pesquisa_de_mercado['A2'].value = "HORA:"
+    pesquisa_de_mercado['A4'].value = "ESPECIFICAÇÃO:"
+    pesquisa_de_mercado['A6'].value = "LOJA"
+    pesquisa_de_mercado['B6'].value = "VALOR"
+    pesquisa_de_mercado['C6'].value = "SÍTIO"
+
+    pesquisa_de_mercado['A1'].font = Font(bold=True)
+    pesquisa_de_mercado['A2'].font = Font(bold=True)
+    pesquisa_de_mercado['A4'].font = Font(bold=True)
+    pesquisa_de_mercado['A6'].font = Font(bold=True)
+    pesquisa_de_mercado['B6'].font = Font(bold=True)
+    pesquisa_de_mercado['C6'].font = Font(bold=True)
+
+    pesquisa_de_mercado['A19'].value = 'MÉDIA'
+    pesquisa_de_mercado['B19'].value = '=AVERAGE(B7:B16)'
+    pesquisa_de_mercado['B19'].style = money_format
+
+    pesquisa_de_mercado['A20'].value = 'DESVIO'
+    pesquisa_de_mercado['B20'].value = '=STDEVP(B7:B16)'
+    pesquisa_de_mercado['B20'].style = money_format
+
+    pesquisa_de_mercado['A21'].value = 'COEFICIENTE'
+    pesquisa_de_mercado['B21'].value = '=B20/B19'
+    pesquisa_de_mercado['B20'].style = percent_style
+
+    pesquisa_de_mercado['A22'].value = 'FATOR DE CONVERSÃO'
+    pesquisa_de_mercado['B22'].value = 0.634
+
+    pesquisa_de_mercado['A23'].value = "PREÇO FINAL"
+    pesquisa_de_mercado['A23'].font = Font(bold=True)
+
+    pesquisa_de_mercado['B23'].value = '=IF(B21>25%,"Erro na Pesquisa",B19*B22)'
+    pesquisa_de_mercado['B23'].style = money_format
+    borda = Border(left=Side(style='thin'),right=Side(style='thin'),top=Side(style='thin'),bottom=Side(style='thin'))
+    for i in range(19,24):
+        pesquisa_de_mercado.cell(row=i,column=1).border = borda
+        pesquisa_de_mercado.cell(row= i, column=2).border = borda
+
+def Racional(workbook):
+    percent_style = NamedStyle(name='percent_style', number_format='0.00%')
+
+    racional = workbook.create_sheet(title= "Racional")
+    racional['A1'].value = "Data análise: "
+    racional['A2'].value = "Palavras chaves utilizadas: "
+    racional['A3'].value = "O coeficiente de variação encontrado foi de: "
+    racional['B3'].value = "=IF(ISBLANK('Itens compatíveis'!S4), 'Pesquisa de mercado'!B21, 'Itens compatíveis'!S4)"
+    racional['B3'].style = percent_style
+    racional['A5'].value = "Demais considerações:"
+
+
+
 def ajuda():
     messagebox.showinfo("Informações importantes",
-                        "Recorte as planilhas e cole em uma nova pasta localizada na sua área de trabalho.\n\nCaso a pasta não esteja na sua área de trabalho você deverá especificar todo o caminho para a pasta.\n\nNão renomeie as planilhas mantendo os nomes padrões das extrações.\n\nO arquivo final será salvo na mesma pasta onde se encontram as planilhas extraídas.\n\nÉ importante ter um controle dos índices das planilhas salvas na pasta. Não é necessário que estes sigam em sequência mas o índice de maior número deve ser inferior à 300.")
+                        "Recorte as planilhas e cole em uma nova pasta localizada na sua área de trabalho.\n\nCaso a pasta não esteja na sua área de trabalho, você deverá especificar todo o caminho para a pasta.\n\nNão renomeie as planilhas, mantendo os nomes padrões das extrações.\n\nO arquivo final será salvo na mesma pasta onde se encontram as planilhas extraídas.\n\nÉ importante ter um controle dos índices das planilhas salvas na pasta. Não é necessário que estas sigam em sequência, mas o índice de maior número deve ser inferior à 300.")
 
 def apagar_caixas_de_texto():
     entrada_nome_arquivo.delete(0, tk.END)
@@ -356,6 +435,6 @@ help_button.place(x=300, y=170)
 
 # Botão para processar as planilhas
 tk.Button(root, text="Processar", command=processar_planilhas).grid(row=4, column=0, columnspan=2, pady=20)
-
+root.bind('<Return>', processar_planilhas)
 # Iniciar a aplicação
 root.mainloop()
