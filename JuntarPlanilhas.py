@@ -34,8 +34,9 @@ def encontrar_caminho_area_de_trabalho():
     raise FileNotFoundError("Não foi possível encontrar a pasta Área de Trabalho ou Desktop.")
 
 def encontrar_caminho_relatorio_painel(B, caminhoDesktop, nomepasta):
-    #possíveis caminhos
+    #possíveis caminhos para o relatorio painel
     caminhos_possiveis = [
+        #caso o governo federal mude o nome das extrações, altere aqui!!!!
         os.path.join(caminhoDesktop, nomepasta, "relatorio_painel ("+str(B)+").xlsx"),
         os.path.join(caminhoDesktop, nomepasta, "relatorio_painel("+str(B)+").xlsx"),
     ]
@@ -48,6 +49,7 @@ def encontrar_caminho_relatorio_painel(B, caminhoDesktop, nomepasta):
 
 def caminho_relatorio_painel_completo(B, caminho_relatorio):
     caminhos_possiveis = [
+        #caso o governo federal mude o nome das extrações, altere aqui!!!!
         os.path.join(caminho_relatorio, "relatorio_painel ("+str(B)+").xlsx"),
         os.path.join(caminho_relatorio, "relatorio_painel("+str(B)+").xlsx"),
     ]    
@@ -408,7 +410,7 @@ root.resizable(False,False)
 
 
 # Layout da interface
-tk.Label(root, text="*Nome da pasta:").grid(row=0, column=0, padx=10, pady=10)
+tk.Label(root, text="*Nome/Caminho da pasta:").grid(row=0, column=0, padx=10, pady=10)
 entrada_nomepasta = tk.Entry(root)
 entrada_nomepasta.grid(row=0, column=1, padx=10, pady=10)
 
