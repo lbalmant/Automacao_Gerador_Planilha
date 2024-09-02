@@ -10,6 +10,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 import pyautogui as bot
 from openpyxl.styles import NamedStyle, Border, Side
 from openpyxl.utils import get_column_letter
+import sys
 
 class ErroDeDataInvalida:
     pass
@@ -391,10 +392,12 @@ def apagar_caixas_de_texto():
     #metodo para fazer o cursor voltar para a primeira caixa
     for i in range (2):
        bot.hotkey('shift', 'tab')
-#def Drop_arquivos():
-
-
-
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path,relative_path)
 
 # Criar a janela principal
 root = tk.Tk()
@@ -418,14 +421,17 @@ tk.Label(root, text = "*Data da extração das planilhas\n(DD/MM/AAAA): ").grid(
 entrada_data = tk.Entry(root)
 entrada_data.grid(row=2, column= 1, padx=10, pady=10)
 
-imagem = Image.open("triangulo.png")
+image_path = resource_path("triangulo.png")
+imagem = Image.open(image_path)
+
 imagem = imagem.resize((32,32),Image.LANCZOS)
 icone = ImageTk.PhotoImage(imagem)
 
 root.iconphoto(True, icone)
 
 #Criando bota de ajuda
-help_icon = Image.open("botao_de_ajuda_transparente.png")
+icon_path = resource_path("botao_de_ajuda_transparente.png")
+help_icon = Image.open(icon_path)
 help_icon = help_icon.resize((22, 22), Image.LANCZOS)
 
 help_icon = ImageTk.PhotoImage(help_icon)
