@@ -6,23 +6,27 @@ from dateutil.relativedelta import relativedelta
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from tkinterdnd2 import DND_FILES, TkinterDnD
+from tkinterdnd2 import DND_FILES
 import pyautogui as bot
 from openpyxl.styles import NamedStyle, Border, Side
 from openpyxl.utils import get_column_letter
 import sys
+from tkinter.filedialog import askdirectory
+from tkinter import ttk
+from tkcalendar import DateEntry
 
-class ErroDeDataInvalida:
+class ErroDeDataInvalida(Exception):
     pass
 
 def encontrar_caminho_area_de_trabalho():
+    
     # Possíveis caminhos para a Área de Trabalho
     caminhos_possiveis = [
         os.path.join(os.path.expanduser("~"), "Desktop"),
         os.path.join(os.path.expanduser("~"), "Área de Trabalho"),
         os.path.join(os.path.expanduser("~"), "OneDrive", "Área de Trabalho"),
         os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop"),
-           
+        os.path.join(os.path.expanduser("~"), "OneDrive - CAMG", "Desktop"),
     ]
 
     # Verifica se algum dos caminhos existe
@@ -44,8 +48,8 @@ def encontrar_caminho_relatorio_painel(B, caminhoDesktop, nomepasta):
     for caminho in caminhos_possiveis:
         if os.path.exists(caminho):
             return caminho
-    else:
-        return "e" 
+    
+    return "e" 
 
 def caminho_relatorio_painel_completo(B, caminho_relatorio):
     caminhos_possiveis = [
@@ -70,24 +74,25 @@ def adicionar_filtros(planilha):
 
 
 def processar_planilhas(event=None):
+    # print(var_caminho_pasta.get())
     try:
-        #Remover_border_frame(entrada_nomepasta)
-        #Remover_border_frame(entrada_numero_planilhas)
-        #Remover_border_frame(entrada_nome_arquivo)
-        #verifica_preenchimento()
         nomepasta = entrada_nomepasta.get()
         nomearq = entrada_nome_arquivo.get()
-        if(not nomepasta or not nomearq):
+        
+
+
+        if((not nomepasta and not os.path.exists(var_caminho_pasta.get())) or not nomearq):
             messagebox.showerror("Erro", "Preencha todas as caixas de texto!")
             return
+        
+
         numeroplanilhas = 300
-        verificarEspaco = 0
-        for c in nomepasta:
-            verificarEspaco += 1
-
-
-        if nomepasta[verificarEspaco-1]== " ":
-            nomepasta = nomepasta[:-1]
+        if(not os.path.exists(var_caminho_pasta.get())):
+            verificarEspaco = 0
+            for c in nomepasta:
+                verificarEspaco += 1
+            if nomepasta[verificarEspaco-1]== " ":
+                nomepasta = nomepasta[:-1]
 
         contadorletras = 0
         for a in nomearq:
@@ -117,20 +122,34 @@ def processar_planilhas(event=None):
 
         #variável para rodar todas as planilhas
         i=1
-        caminhopasta = os.path.join(caminhoDesktop, nomepasta)
+
+        if(not os.path.exists(var_caminho_pasta.get())):
+            caminhopasta = os.path.join(caminhoDesktop, nomepasta)
+        else:
+            caminhopasta = var_caminho_pasta.get()
+            
 
         ehCaminhoCompleto = False
 
         #verifica se a pasta foi encontrada retornando uma mensagem de erro se não for
-        if(not os.path.exists(caminhopasta)):
+        if(not os.path.exists(caminhopasta) and not os.path.exists(var_caminho_pasta.get())):
             caminhopasta = nomepasta
             ehCaminhoCompleto = True
+
+        if(os.path.exists(var_caminho_pasta.get())):
+            ehCaminhoCompleto = True
+            caminhopasta = var_caminho_pasta.get()
+
+        
+
         caminho_relatorio = os.path.join(caminhopasta, "relatorio_painel.xlsx")
 
 
         if(not os.path.exists(caminhopasta)):
             messagebox.showerror("Pasta não encontrada!","Certifique-se de que a pasta se encontra na área de trabalho do seu Desktop e que o nome esteja correto.\nVoce também pode fornecer o caminho completo para a pasta.")
             return
+
+        caminho_relatorio = caminho_relatorio.replace("\\","/")
 
         while(not os.path.exists(caminho_relatorio) and i<=numeroplanilhas):
             if ehCaminhoCompleto:
@@ -140,7 +159,7 @@ def processar_planilhas(event=None):
             i+=1
 
 
-        #lendo a planilha base
+       #lendo a planilha base
         workbook = xl.load_workbook(caminho_relatorio)
         planilha = workbook.active
 
@@ -156,7 +175,13 @@ def processar_planilhas(event=None):
         #loop que roda todas as planilhas secundarias trazendo as informações importantes para a principal
         while(i!=numeroplanilhas):
             #criando o caminho para cada uma das outras planilhas e ativando a planilha
-            CamOutrasPlanilhas = encontrar_caminho_relatorio_painel(i, caminhoDesktop, nomepasta)
+            if (ehCaminhoCompleto):
+                CamOutrasPlanilhas = caminho_relatorio_painel_completo(i, caminhopasta)
+                
+            else: 
+                CamOutrasPlanilhas = encontrar_caminho_relatorio_painel(i, caminhoDesktop, nomepasta)
+                
+
             if os.path.exists(CamOutrasPlanilhas):
                 Workbook2 = xl.load_workbook(CamOutrasPlanilhas)
                 PlanSecundaria = Workbook2.active
@@ -203,8 +228,8 @@ def processar_planilhas(event=None):
         messagebox.showerror("Erro", str(e))
     except ErroDeDataInvalida:
         messagebox.showerror("Erro", "Erro ao processar a data. Execução interrompida.")
-    except Exception:
-        messagebox.showerror("Erro", "Tente verificar os espaços.")
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 #salvando o arquivo
 
 
@@ -401,6 +426,20 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path,relative_path)
 
+
+# função para selecionar o diretorio manualmente-----------------------------------------------------------------------------------------------------------------------
+def selecionarManualmente():
+    caminho_pasta = askdirectory(title='Selecione a pasta com os arquivos')
+    var_caminho_pasta.set(caminho_pasta)
+    if caminho_pasta:
+        label_pasta_selecionada['text'] = f"Pasta selecionada: {os.path.basename(caminho_pasta)}" #ve se isso rola
+        # Define o caminho completo na caixa de texto (associada a 'entrada_nomepasta')
+        entrada_nomepasta.delete(0, 'end')  # Limpa o campo de texto antes de inserir o novo valor
+        entrada_nomepasta.insert(0, caminho_pasta)  # Insere o caminho da pasta
+
+def pegar_data():
+    data = calendario.get_date()
+
 # Criar a janela principal
 root = tk.Tk()
 root.title("Processador de Planilhas")
@@ -418,10 +457,22 @@ entrada_nomepasta.grid(row=0, column=1, padx=10, pady=10)
 tk.Label(root, text="*Nome do arquivo final:").grid(row=1, column=0, padx=10, pady=10)
 entrada_nome_arquivo = tk.Entry(root)
 entrada_nome_arquivo.grid(row=1, column=1, padx=10, pady=10)
-
+"""
 tk.Label(root, text = "*Data da extração das planilhas\n(DD/MM/AAAA): ").grid(row = 2, column= 0, padx=10, pady=10)
 entrada_data = tk.Entry(root)
 entrada_data.grid(row=2, column= 1, padx=10, pady=10)
+"""
+
+
+calendario = DateEntry(root, width=12, background='darkblue',
+                       foreground='white', borderwidth=2)
+calendario.grid(row=2, column=0, padx=10, pady=10)
+
+
+"""
+botao = ttk.Button(root, text="Confirmar Data", command=pegar_data)
+botao.grid(row=2, column=1, padx=10, pady=10)
+"""
 
 image_path = resource_path("triangulo.png")
 imagem = Image.open(image_path)
@@ -440,6 +491,16 @@ help_icon = ImageTk.PhotoImage(help_icon)
 
 help_button = tk.Button(root, image=help_icon, command=ajuda, borderwidth=0)
 help_button.place(x=300, y=170)
+
+# criando botão para selecionar o diretório manualmente ----------------------------------------------------------------------------------------------------------
+var_caminho_pasta = tk.StringVar()
+botao_selecionararquivo = tk.Button(root, text="Ou clique para Selecionar", command=selecionarManualmente,width=18,height=0,bd=0,bg='#b5aeae',fg='#666262') #.grid(ipadx=1, ipady=1, sticky='nsew')
+botao_selecionararquivo.place(x=27, y=29)
+
+
+label_pasta_selecionada = tk.Label(root, text='Nenhuma pasta selecionada', anchor='e')
+label_pasta_selecionada.grid(row=5, column=0, columnspan=3, padx=10, pady=10, sticky='nsew')
+
 
 # Botão para processar as planilhas
 tk.Button(root, text="Processar", command=processar_planilhas).grid(row=4, column=0, columnspan=2, pady=20)
